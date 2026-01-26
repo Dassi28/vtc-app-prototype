@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../config/theme.dart';
 import '../../controllers/home_controller.dart';
 import '../../controllers/ride_controller.dart';
 import '../../controllers/auth_controller.dart';
-import '../../data/models/driver_model.dart';
 import 'widgets/location_search_widget.dart';
 import 'widgets/vehicle_selector_widget.dart';
 import 'widgets/price_estimate_widget.dart';
@@ -15,27 +15,60 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final homeController = Get.put(HomeController());
+    final homeController = Get.find<HomeController>();
     final rideController = Get.find<RideController>();
     final authController = Get.find<AuthController>();
+
+    // Yaoundé default
+    final defaultCenter = LatLng(3.8480, 11.5021);
 
     return Scaffold(
       body: Stack(
         children: [
-          // Google Map
-          Obx(() => GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: homeController.currentLocation.value ?? 
-                      const LatLng(3.8480, 11.5021), // Yaoundé default
-                  zoom: 14,
+          // Flutter Map (OSM)
+          Obx(() => FlutterMap(
+                mapController: homeController.mapController,
+                options: MapOptions(
+                  initialCenter: homeController.currentLocation.value ?? defaultCenter,
+                  initialZoom: 15.0,
+                  interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                  ),
                 ),
-                onMapCreated: homeController.onMapCreated,
-                myLocationEnabled: true,
-                myLocationButtonEnabled: false,
-                zoomControlsEnabled: false,
-                mapToolbarEnabled: false,
-                markers: homeController.markers,
-                polylines: homeController.polylines,
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.example.yango_client',
+                    subdomains: const ['a', 'b', 'c'],
+                  ),
+                  PolylineLayer(
+                    polylines: homeController.polylines.toList(),
+                  ),
+                  MarkerLayer(
+                    markers: homeController.markers.toList(),
+                  ),
+                  // Current location marker (blue dot)
+                  if (homeController.currentLocation.value != null)
+                   MarkerLayer(
+                     markers: [
+                       Marker(
+                         point: homeController.currentLocation.value!,
+                         width: 20,
+                         height: 20,
+                         child: Container(
+                           decoration: BoxDecoration(
+                             color: Colors.blue,
+                             shape: BoxShape.circle,
+                             border: Border.all(color: Colors.white, width: 2),
+                             boxShadow: [
+                               BoxShadow(color: Colors.black26, blurRadius: 4),
+                             ],
+                           ),
+                         ),
+                       ),
+                     ],
+                   ),
+                ],
               )),
 
           // Top bar with menu and profile
@@ -80,13 +113,12 @@ class HomeScreen extends StatelessWidget {
                     ),
                     child: IconButton(
                       icon: const Icon(Icons.my_location),
-                      onPressed: () {
+                      onPressed: () async {
                         if (homeController.currentLocation.value != null) {
-                          homeController.mapController?.animateCamera(
-                            CameraUpdate.newLatLng(
+                           homeController.mapController.move(
                               homeController.currentLocation.value!,
-                            ),
-                          );
+                              15.0,
+                           );
                         }
                       },
                     ),

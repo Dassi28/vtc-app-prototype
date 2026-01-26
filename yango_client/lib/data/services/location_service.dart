@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 
 class LocationService extends GetxService {
   Future<bool> requestLocationPermission() async {
@@ -32,6 +33,14 @@ class LocationService extends GetxService {
         accuracy: LocationAccuracy.high,
       ),
     );
+  }
+
+  Future<LatLng?> getCurrentLatLng() async {
+    final position = await getCurrentPosition();
+    if (position != null) {
+      return LatLng(position.latitude, position.longitude);
+    }
+    return null;
   }
 
   Future<String?> getAddressFromLatLng(double latitude, double longitude) async {

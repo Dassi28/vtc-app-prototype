@@ -9,6 +9,7 @@ import 'data/services/ride_service.dart';
 import 'data/services/location_service.dart';
 import 'controllers/auth_controller.dart';
 import 'controllers/ride_controller.dart';
+import 'controllers/home_controller.dart';
 import 'views/splash_screen.dart';
 import 'views/onboarding/onboarding_screen.dart';
 import 'views/auth/login_screen.dart';
@@ -33,6 +34,7 @@ void main() async {
   // Inject controllers
   Get.put(AuthController());
   Get.put(RideController());
+  Get.put(HomeController());
 
   runApp(const YangoClientApp());
 }

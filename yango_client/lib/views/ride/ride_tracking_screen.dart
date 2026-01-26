@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../config/theme.dart';
 import '../../controllers/ride_controller.dart';
 import '../../data/models/ride_model.dart';
@@ -22,57 +23,61 @@ class RideTrackingScreen extends StatelessWidget {
           );
         }
 
+        final pickup = LatLng(ride.pickupLatitude, ride.pickupLongitude);
+        final destination = LatLng(ride.destinationLatitude, ride.destinationLongitude);
+        final driverLoc = (ride.driver?.currentLatitude != null && ride.driver?.currentLongitude != null)
+            ? LatLng(ride.driver!.currentLatitude!, ride.driver!.currentLongitude!)
+            : null;
+
         return Stack(
           children: [
-            // Map
-            GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: LatLng(ride.pickupLatitude, ride.pickupLongitude),
-                zoom: 14,
-              ),
-              markers: {
-                Marker(
-                  markerId: const MarkerId('pickup'),
-                  position: LatLng(ride.pickupLatitude, ride.pickupLongitude),
-                  icon: BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueGreen,
+             FlutterMap(
+                options: MapOptions(
+                  initialCenter: pickup, 
+                  initialZoom: 14.0,
+                  interactionOptions: const InteractionOptions(
+                    flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                   ),
                 ),
-                Marker(
-                  markerId: const MarkerId('destination'),
-                  position: LatLng(
-                    ride.destinationLatitude,
-                    ride.destinationLongitude,
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.example.yango_client',
                   ),
-                  icon: BitmapDescriptor.defaultMarkerWithHue(
-                    BitmapDescriptor.hueRed,
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: [pickup, destination],
+                        color: AppTheme.primaryColor,
+                        strokeWidth: 4,
+                      ),
+                    ],
                   ),
-                ),
-                if (ride.driver?.currentLatitude != null &&
-                    ride.driver?.currentLongitude != null)
-                  Marker(
-                    markerId: const MarkerId('driver'),
-                    position: LatLng(
-                      ride.driver!.currentLatitude!,
-                      ride.driver!.currentLongitude!,
-                    ),
-                    icon: BitmapDescriptor.defaultMarkerWithHue(
-                      BitmapDescriptor.hueBlue,
-                    ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: pickup,
+                        width: 40,
+                        height: 40,
+                        child: const Icon(Icons.location_on, color: Colors.green, size: 40),
+                      ),
+                      Marker(
+                        point: destination,
+                        width: 40,
+                        height: 40,
+                        child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                      ),
+                      if (driverLoc != null)
+                        Marker(
+                          point: driverLoc,
+                          width: 40,
+                          height: 40,
+                          child: const Icon(Icons.directions_car, color: Colors.blue, size: 40),
+                        ),
+                    ],
                   ),
-              },
-              polylines: {
-                Polyline(
-                  polylineId: const PolylineId('route'),
-                  points: [
-                    LatLng(ride.pickupLatitude, ride.pickupLongitude),
-                    LatLng(ride.destinationLatitude, ride.destinationLongitude),
-                  ],
-                  color: AppTheme.primaryColor,
-                  width: 4,
-                ),
-              },
-            ),
+                ],
+             ),
 
             // Back button
             SafeArea(

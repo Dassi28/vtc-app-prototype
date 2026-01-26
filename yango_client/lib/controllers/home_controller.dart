@@ -1,13 +1,17 @@
-import 'dart:ui';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import '../data/data.dart';
 import '../data/services/location_service.dart';
 import '../data/models/driver_model.dart';
+import '../core/utils.dart';
+
 
 class HomeController extends GetxController {
   final LocationService _locationService = Get.find<LocationService>();
 
-  GoogleMapController? mapController;
+  final MapController mapController = MapController();
   
   final Rx<LatLng?> currentLocation = Rx<LatLng?>(null);
   final Rx<LatLng?> pickupLocation = Rx<LatLng?>(null);
@@ -16,8 +20,8 @@ class HomeController extends GetxController {
   final RxString pickupAddress = ''.obs;
   final RxString destinationAddress = ''.obs;
   
-  final RxSet<Marker> markers = <Marker>{}.obs;
-  final RxSet<Polyline> polylines = <Polyline>{}.obs;
+  final RxList<Marker> markers = <Marker>[].obs;
+  final RxList<Polyline> polylines = <Polyline>[].obs;
   
   final RxBool isLoading = false.obs;
   final Rx<VehicleType> selectedVehicleType = VehicleType.standard.obs;
@@ -47,36 +51,26 @@ class HomeController extends GetxController {
       }
       
       _updateMarkers();
-      _animateToLocation(currentLocation.value!);
+      // Need to wait for map to differ rendering before moving
+      // Or just set initial center in view
     }
     isLoading.value = false;
   }
 
-  void onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-    if (currentLocation.value != null) {
-      _animateToLocation(currentLocation.value!);
-    }
-  }
-
-  void _animateToLocation(LatLng location) {
-    mapController?.animateCamera(
-      CameraUpdate.newCameraPosition(
-        CameraPosition(target: location, zoom: 15),
-      ),
-    );
+  void _moveToLocation(LatLng location) {
+    mapController.move(location, 15.0);
   }
 
   void _updateMarkers() {
-    final newMarkers = <Marker>{};
+    final newMarkers = <Marker>[];
     
     if (pickupLocation.value != null) {
       newMarkers.add(
         Marker(
-          markerId: const MarkerId('pickup'),
-          position: pickupLocation.value!,
-          infoWindow: InfoWindow(title: 'Départ', snippet: pickupAddress.value),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          point: pickupLocation.value!,
+          width: 40,
+          height: 40,
+          child: const Icon(Icons.location_on, color: Colors.green, size: 40),
         ),
       );
     }
@@ -84,10 +78,10 @@ class HomeController extends GetxController {
     if (destinationLocation.value != null) {
       newMarkers.add(
         Marker(
-          markerId: const MarkerId('destination'),
-          position: destinationLocation.value!,
-          infoWindow: InfoWindow(title: 'Destination', snippet: destinationAddress.value),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          point: destinationLocation.value!,
+          width: 40,
+          height: 40,
+          child: const Icon(Icons.location_on, color: Colors.red, size: 40),
         ),
       );
     }
@@ -141,26 +135,8 @@ class HomeController extends GetxController {
   void _fitBounds() {
     if (pickupLocation.value == null || destinationLocation.value == null) return;
     
-    final bounds = LatLngBounds(
-      southwest: LatLng(
-        pickupLocation.value!.latitude < destinationLocation.value!.latitude
-            ? pickupLocation.value!.latitude
-            : destinationLocation.value!.latitude,
-        pickupLocation.value!.longitude < destinationLocation.value!.longitude
-            ? pickupLocation.value!.longitude
-            : destinationLocation.value!.longitude,
-      ),
-      northeast: LatLng(
-        pickupLocation.value!.latitude > destinationLocation.value!.latitude
-            ? pickupLocation.value!.latitude
-            : destinationLocation.value!.latitude,
-        pickupLocation.value!.longitude > destinationLocation.value!.longitude
-            ? pickupLocation.value!.longitude
-            : destinationLocation.value!.longitude,
-      ),
-    );
-    
-    mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
+    final bounds = LatLngBounds(pickupLocation.value!, destinationLocation.value!);
+    mapController.fitCamera(CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(50)));
   }
 
   void _calculateRoute() {
@@ -172,15 +148,14 @@ class HomeController extends GetxController {
       destinationLocation.value!,
     );
     
-    // Draw a simple line (for real app, use Directions API)
-    polylines.value = {
+    // Draw a simple line 
+    polylines.value = [
       Polyline(
-        polylineId: const PolylineId('route'),
         points: [pickupLocation.value!, destinationLocation.value!],
         color: const Color(0xFF00B14F),
-        width: 5,
+        strokeWidth: 5,
       ),
-    };
+    ];
     
     _calculatePrice();
   }
