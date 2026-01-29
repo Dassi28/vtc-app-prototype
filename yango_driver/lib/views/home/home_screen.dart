@@ -55,8 +55,8 @@ class HomeScreen extends StatelessWidget {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.example.yango_driver',
+                    urlTemplate: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                    subdomains: const ['a', 'b', 'c'],
                   ),
                   if (location != null)
                     MarkerLayer(
@@ -65,7 +65,17 @@ class HomeScreen extends StatelessWidget {
                           point: location,
                           width: 40,
                           height: 40,
-                          child: const Icon(Icons.directions_car, color: AppTheme.primaryColor, size: 40),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.yellow[700],
+                              shape: BoxShape.circle,
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black45, blurRadius: 8),
+                              ],
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            child: const Icon(Icons.navigation, color: Colors.black, size: 24),
+                          ),
                         ),
                       ],
                     ),
@@ -93,15 +103,27 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                      border: Border.all(color: Colors.white24),
                     ),
-                    child: const Text(
-                      '0 FCFA', // Placeholder for daily earnings
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.account_balance_wallet, color: Colors.yellow[700], size: 18),
+                        const SizedBox(width: 8),
+                        const Text(
+                          '12 500 FCFA', // Simulated daily earnings
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold, 
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

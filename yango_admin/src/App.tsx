@@ -1,9 +1,10 @@
-import { Refine } from "@refinedev/core";
-import { useNotificationProvider } from "@refinedev/antd";
+import { Refine, Authenticated } from "@refinedev/core";
+import { useNotificationProvider, AuthPage } from "@refinedev/antd";
 import routerBindings, {
   CatchAllNavigate,
   DocumentTitleHandler,
   UnsavedChangesNotifier,
+  NavigateToResource,
 } from "@refinedev/react-router-v6";
 import { dataProvider } from "@refinedev/supabase";
 import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
@@ -66,16 +67,57 @@ function App() {
             }}
           >
             <Routes>
+              {/* Public Routes (Login/Register) */}
               <Route
                 element={
-                  <div style={{ display: "flex", flexDirection: "row", minHeight: "100vh" }}>
-                    <CustomSider />
-                    <div style={{ flex: 1, padding: "24px", background: "#f0f2f5" }}>
-                      <Outlet />
-                    </div>
-                  </div>
+                  <Authenticated
+                    key="authenticated-outer"
+                    fallback={<Outlet />}
+                  >
+                    <NavigateToResource />
+                  </Authenticated>
                 }
               >
+                <Route
+                  path="/login"
+                  element={
+                    <AuthPage
+                      type="login"
+                      title={
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+                          <div style={{ width: 32, height: 32, background: "#00B14F", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: "bold" }}>Y</div>
+                          <span style={{ color: "#00B14F", fontSize: "20px", fontWeight: "bold" }}>Yango Admin</span>
+                        </div>
+                      }
+                      formProps={{
+                        initialValues: { email: "admin@demo.com", password: "password123" },
+                      }}
+                    />
+                  }
+                />
+                <Route
+                  path="/register"
+                  element={<AuthPage type="register" />}
+                />
+              </Route>
+
+              {/* Protected Routes */}
+              <Route
+                element={
+                  <Authenticated
+                    key="authenticated-inner"
+                    fallback={<CatchAllNavigate to="/login" />}
+                  >
+                    <div style={{ display: "flex", flexDirection: "row", minHeight: "100vh" }}>
+                      <CustomSider />
+                      <div style={{ flex: 1, padding: "24px", background: "#f0f2f5", marginLeft: "200px" }}>
+                        <Outlet />
+                      </div>
+                    </div>
+                  </Authenticated>
+                }
+              >
+                <Route path="/" element={<NavigateToResource resource="dashboard" />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/drivers">
                   <Route index element={<DriverList />} />
