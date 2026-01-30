@@ -1,4 +1,6 @@
 import 'driver_model.dart';
+import 'user_model.dart';
+
 
 enum RideStatus {
   pending,
@@ -46,6 +48,8 @@ class RideModel {
   
   // Driver info (joined from drivers table)
   final DriverModel? driver;
+  // Client info (joined from users table)
+  final UserModel? client;
 
   RideModel({
     required this.id,
@@ -78,6 +82,7 @@ class RideModel {
     this.createdAt,
     this.updatedAt,
     this.driver,
+    this.client,
   });
 
   factory RideModel.fromJson(Map<String, dynamic> json) {
@@ -137,6 +142,9 @@ class RideModel {
       driver: json['drivers'] != null
           ? DriverModel.fromJson(json['drivers'] as Map<String, dynamic>)
           : null,
+      client: json['clients'] != null // Assuming joined as 'clients' referencing users(clients) or direct users join
+          ? UserModel.fromJson(json['clients'] as Map<String, dynamic>)
+          : (json['client_info'] != null ? UserModel.fromJson(json['client_info']) : null),
     );
   }
 
@@ -230,5 +238,73 @@ class RideModel {
       case RideStatus.cancelled:
         return 'Annulée';
     }
+  }
+
+  RideModel copyWith({
+    String? id,
+    String? clientId,
+    String? driverId,
+    double? pickupLatitude,
+    double? pickupLongitude,
+    String? pickupAddress,
+    double? destinationLatitude,
+    double? destinationLongitude,
+    String? destinationAddress,
+    RideStatus? status,
+    VehicleType? vehicleType,
+    double? distanceKm,
+    int? durationMinutes,
+    double? basePrice,
+    double? totalPrice,
+    PaymentMethod? paymentMethod,
+    PaymentStatus? paymentStatus,
+    int? clientRating,
+    int? driverRating,
+    String? clientComment,
+    String? driverComment,
+    DateTime? requestedAt,
+    DateTime? acceptedAt,
+    DateTime? startedAt,
+    DateTime? completedAt,
+    DateTime? cancelledAt,
+    String? cancellationReason,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DriverModel? driver,
+    UserModel? client,
+  }) {
+    return RideModel(
+      id: id ?? this.id,
+      clientId: clientId ?? this.clientId,
+      driverId: driverId ?? this.driverId,
+      pickupLatitude: pickupLatitude ?? this.pickupLatitude,
+      pickupLongitude: pickupLongitude ?? this.pickupLongitude,
+      pickupAddress: pickupAddress ?? this.pickupAddress,
+      destinationLatitude: destinationLatitude ?? this.destinationLatitude,
+      destinationLongitude: destinationLongitude ?? this.destinationLongitude,
+      destinationAddress: destinationAddress ?? this.destinationAddress,
+      status: status ?? this.status,
+      vehicleType: vehicleType ?? this.vehicleType,
+      distanceKm: distanceKm ?? this.distanceKm,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
+      basePrice: basePrice ?? this.basePrice,
+      totalPrice: totalPrice ?? this.totalPrice,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      clientRating: clientRating ?? this.clientRating,
+      driverRating: driverRating ?? this.driverRating,
+      clientComment: clientComment ?? this.clientComment,
+      driverComment: driverComment ?? this.driverComment,
+      requestedAt: requestedAt ?? this.requestedAt,
+      acceptedAt: acceptedAt ?? this.acceptedAt,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
+      cancellationReason: cancellationReason ?? this.cancellationReason,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      driver: driver ?? this.driver,
+      client: client ?? this.client,
+    );
   }
 }

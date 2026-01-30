@@ -16,6 +16,11 @@ import 'views/auth/login_screen.dart';
 import 'views/home/home_screen.dart';
 import 'views/ride/ride_tracking_screen.dart';
 import 'views/ride/ride_history_screen.dart';
+import 'views/auth/driver_register_screen.dart';
+import 'views/driver/driver_home_screen.dart';
+import 'views/driver/driver_navigation_screen.dart';
+import 'data/services/driver_service.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,6 +35,8 @@ void main() async {
   Get.put(AuthService());
   Get.put(RideService());
   Get.put(LocationService());
+  Get.put(DriverService());
+
 
   // Inject controllers
   Get.put(AuthController());
@@ -63,8 +70,16 @@ class YangoClientApp extends StatelessWidget {
           page: () => const LoginScreen(),
         ),
         GetPage(
+          name: '/driver-register',
+          page: () => const DriverRegisterScreen(),
+        ),
+        GetPage(
           name: '/home',
           page: () => const HomeScreen(),
+        ),
+        GetPage(
+          name: '/driver-home',
+          page: () => const DriverHomeScreen(),
         ),
         GetPage(
           name: '/ride-tracking',

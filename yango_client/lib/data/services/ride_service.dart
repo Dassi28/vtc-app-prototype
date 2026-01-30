@@ -132,4 +132,89 @@ class RideService extends GetxService {
     if (response == null) return null;
     return RideModel.fromJson(response);
   }
+
+  // --- Driver Methods ---
+
+  Future<void> acceptRideRequest(String requestId, String rideId, String driverId) async {
+    // 1. Transaction-like update:
+    // Update ride_requests status to 'accepted'
+    // Update rides table: driver_id, status='accepted', accepted_at
+    // Update driver availability to false
+
+    // a. Update request
+    await _supabase.from('ride_requests').update({
+      'status': 'accepted',
+      'responded_at': DateTime.now().toIso8601String(),
+    }).eq('id', requestId);
+
+    // b. Assign driver to ride
+    await _supabase.from('rides').update({
+      'driver_id': driverId,
+      'status': 'accepted',
+      'accepted_at': DateTime.now().toIso8601String(),
+    }).eq('id', rideId);
+
+    // c. Make driver busy
+    await _supabase.from('drivers').update({
+      'is_available': false,
+    }).eq('id', driverId);
+  }
+
+  Future<void> updateRideStatus(String rideId, RideStatus status) async {
+    final updates = <String, dynamic>{
+      'status': _statusToString(status),
+    };
+
+    if (status == RideStatus.inProgress) {
+      updates['started_at'] = DateTime.now().toIso8601String();
+    } else if (status == RideStatus.completed) {
+      updates['completed_at'] = DateTime.now().toIso8601String();
+    }
+
+    await _supabase.from('rides').update(updates).eq('id', rideId);
+    
+    // If completed, make driver available again
+    if (status == RideStatus.completed) {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId != null) {
+        await _supabase.from('drivers').update({
+          'is_available': true,
+        }).eq('id', userId);
+      }
+    }
+  }
+
+  String _statusToString(RideStatus status) {
+    switch (status) {
+      case RideStatus.pending: return 'pending';
+      case RideStatus.accepted: return 'accepted';
+      case RideStatus.driverArriving: return 'driver_arriving';
+      case RideStatus.inProgress: return 'in_progress';
+      case RideStatus.completed: return 'completed';
+      case RideStatus.cancelled: return 'cancelled';
+    }
+  }
+
+  // --- Real-time Tracking ---
+
+  Stream<List<DriverModel>> streamAvailableDrivers() {
+    return _supabase
+        .from('drivers')
+        .stream(primaryKey: ['id'])
+        .eq('is_available', true)
+        .map((List<Map<String, dynamic>> data) {
+      return data.map((json) => DriverModel.fromJson(json)).toList();
+    });
+  }
+
+  Stream<DriverModel?> streamDriverLocation(String driverId) {
+    return _supabase
+        .from('drivers')
+        .stream(primaryKey: ['id'])
+        .eq('id', driverId)
+        .map((event) {
+      if (event.isEmpty) return null;
+      return DriverModel.fromJson(event.first);
+    });
+  }
 }

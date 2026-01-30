@@ -46,6 +46,10 @@ class HomeScreen extends StatelessWidget {
                   MarkerLayer(
                     markers: homeController.markers.toList(),
                   ),
+                  // Available Drivers
+                  MarkerLayer(
+                    markers: homeController.driverMarkers.toList(),
+                  ),
                   // Current location marker (blue dot)
                   if (homeController.currentLocation.value != null)
                    MarkerLayer(

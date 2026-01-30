@@ -119,6 +119,29 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 ],
               ),
             ),
+            
+            // Driver Registration Link
+            Padding(
+              padding: const EdgeInsets.only(bottom: 24),
+              child: TextButton(
+                onPressed: () => Get.toNamed('/driver-register'),
+                child: RichText(
+                  text: TextSpan(
+                    text: 'Vous êtes chauffeur ? ',
+                    style: TextStyle(color: Colors.grey[600]),
+                    children: [
+                      TextSpan(
+                        text: 'Inscrivez-vous ici',
+                        style: TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),

@@ -1,6 +1,8 @@
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/models/user_model.dart';
+import '../data/models/driver_model.dart';
+
 import '../data/services/auth_service.dart';
 
 class AuthController extends GetxController {
@@ -24,18 +26,18 @@ class AuthController extends GetxController {
     _authService.authStateChanges.listen((state) {
       _user.value = state.session?.user;
       if (state.session?.user != null) {
-        _loadUserProfile();
+        loadUserProfile();
       } else {
         _userProfile.value = null;
       }
     });
 
     if (isAuthenticated) {
-      _loadUserProfile();
+      loadUserProfile();
     }
   }
 
-  Future<void> _loadUserProfile() async {
+  Future<void> loadUserProfile() async {
     _userProfile.value = await _authService.getCurrentUserProfile();
   }
 
@@ -97,5 +99,44 @@ class AuthController extends GetxController {
     await _authService.signOut();
     _user.value = null;
     _userProfile.value = null;
+  }
+
+  Future<bool> registerDriver({
+    required String email,
+    required String password,
+    required String fullName,
+    required String phone,
+    required VehicleType vehicleType,
+    required String vehicleBrand,
+    required String vehicleModel,
+    required String licensePlate,
+    required String driverLicense,
+  }) async {
+    try {
+      isLoading.value = true;
+      errorMessage.value = '';
+
+      await _authService.registerDriver(
+        email: email,
+        password: password,
+        fullName: fullName,
+        phone: phone,
+        vehicleType: vehicleType,
+        vehicleBrand: vehicleBrand,
+        vehicleModel: vehicleModel,
+        licensePlate: licensePlate,
+        driverLicense: driverLicense,
+      );
+
+      return true;
+    } on AuthException catch (e) {
+      errorMessage.value = e.message;
+      return false;
+    } catch (e) {
+      errorMessage.value = 'Registration failed: $e';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   }
 }

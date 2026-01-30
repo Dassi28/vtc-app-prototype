@@ -17,25 +17,35 @@ let DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 export const DashboardPage = () => {
-    // Fetch Stats (Using 'useList' to get counts)
-    // For total rides today
-    const { data: ridesData } = useList({
+    // Active Rides
+    const { data: activeRides } = useList({
         resource: "rides",
-        pagination: { mode: "off" }, // Warning: on large DB this is bad, normally use aggregate query
-        meta: {
-            select: "count",
-        }
+        filters: [
+            {
+                field: "status",
+                operator: "in",
+                value: ["accepted", "driver_arriving", "in_progress"]
+            }
+        ],
+        pagination: { mode: "off" },
     });
 
-    // For active drivers
+    // All Drivers (online) - Removed filter to show all if needed, or keep for online only
     const { data: driversData } = useList({
         resource: "drivers",
         filters: [{ field: "is_available", operator: "eq", value: true }],
         pagination: { mode: "off" },
-        meta: {
-            select: "count",
-        }
     });
+
+    // Users count (real fetch)
+    const { data: usersData } = useList({
+        resource: "users",
+        filters: [{ field: "role", operator: "eq", value: "client" }],
+        meta: { select: "count" }
+    });
+
+    // Revenue (Mock/Aggr) - Real aggregations need backend function usually
+    const dailyRevenue = 254000;
 
     // Mock map center (Yaoundé)
     const position: [number, number] = [3.8480, 11.5021];
@@ -49,8 +59,8 @@ export const DashboardPage = () => {
                 <Col span={6}>
                     <Card bordered={false}>
                         <Statistic
-                            title="Courses Totales"
-                            value={ridesData?.total ?? 0}
+                            title="Courses Actives"
+                            value={activeRides?.total ?? 0}
                             prefix={<EnvironmentOutlined />}
                             valueStyle={{ color: '#00B14F' }}
                         />
@@ -70,7 +80,7 @@ export const DashboardPage = () => {
                     <Card bordered={false}>
                         <Statistic
                             title="Clients"
-                            value={1128}
+                            value={usersData?.total ?? 0}
                             prefix={<UserOutlined />}
                         />
                     </Card>
@@ -79,7 +89,7 @@ export const DashboardPage = () => {
                     <Card bordered={false}>
                         <Statistic
                             title="Revenus (Jour)"
-                            value={254000}
+                            value={dailyRevenue}
                             prefix={<DollarOutlined />}
                             suffix="FCFA"
                         />
@@ -90,39 +100,78 @@ export const DashboardPage = () => {
             <Row gutter={24}>
                 {/* Map Section */}
                 <Col span={16}>
-                    <Card title="Carte des Chauffeurs en Temps Réel" bodyStyle={{ padding: 0, height: "400px" }}>
+                    <Card title="Carte Temps Réel (Chauffeurs & Courses)" bodyStyle={{ padding: 0, height: "500px" }}>
                         <MapContainer center={position} zoom={13} style={{ height: "100%", width: "100%" }}>
                             <TileLayer
                                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
                                 url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"
                             />
-                            {/* Mock markers based on driver count or real data if available in list */}
+
+                            {/* 1. Drivers */}
                             {driversData?.data.map((driver: any) => (
                                 driver.current_latitude && driver.current_longitude ? (
                                     <Marker
-                                        key={driver.id}
+                                        key={`driver-${driver.id}`}
                                         position={[driver.current_latitude, driver.current_longitude]}
+                                        icon={DefaultIcon}
                                     >
                                         <Popup>
-                                            {driver.vehicle_model} - {driver.license_plate}
+                                            <b>{driver.vehicle_model}</b><br />
+                                            {driver.license_plate}<br />
+                                            <span style={{ color: 'green' }}>En ligne</span>
                                         </Popup>
                                     </Marker>
                                 ) : null
                             ))}
+
+                            {/* 2. Active Rides (Pickup & Destination) */}
+                            {activeRides?.data.map((ride: any) => (
+                                <>
+                                    {/* Pickup (Green) */}
+                                    <Marker
+                                        key={`pickup-${ride.id}`}
+                                        position={[ride.pickup_latitude, ride.pickup_longitude]}
+                                        icon={L.divIcon({
+                                            className: 'custom-icon',
+                                            html: '<div style="background-color: green; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>'
+                                        })}
+                                    >
+                                        <Popup>Départ: {ride.pickup_address}</Popup>
+                                    </Marker>
+
+                                    {/* Destination (Red) */}
+                                    <Marker
+                                        key={`dest-${ride.id}`}
+                                        position={[ride.destination_latitude, ride.destination_longitude]}
+                                        icon={L.divIcon({
+                                            className: 'custom-icon',
+                                            html: '<div style="background-color: red; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>'
+                                        })}
+                                    >
+                                        <Popup>Arrivée: {ride.destination_address}</Popup>
+                                    </Marker>
+
+                                    {/* Line logic would go here (Polyline) if needed */}
+                                </>
+                            ))}
+
                         </MapContainer>
                     </Card>
                 </Col>
 
                 {/* Recent Activity */}
                 <Col span={8}>
-                    <Card title="Activités Récentes" style={{ height: "100%" }}>
-                        <p style={{ color: "gray" }}>En attente de nouvelles courses...</p>
-                        {/* Placeholder list */}
+                    <Card title="Activités Récentes" style={{ height: "100%", overflowY: "auto" }}>
+                        {activeRides?.data.length === 0 && <p style={{ color: "gray" }}>Aucune course active.</p>}
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                            {[1, 2, 3].map(i => (
-                                <div key={i} style={{ padding: 10, background: "#f9f9f9", borderRadius: 4 }}>
-                                    <div><b>Course #{1000 + i}</b> - En cours</div>
-                                    <div style={{ fontSize: 12, color: "gray" }}>Il y a {i * 5} min</div>
+                            {activeRides?.data.map((ride: any) => (
+                                <div key={ride.id} style={{ padding: 10, background: "#f9f9f9", borderRadius: 4, borderLeft: "4px solid #00B14F" }}>
+                                    <div style={{ fontWeight: 'bold' }}>Course en cours</div>
+                                    <div style={{ fontSize: 12 }}>{ride.pickup_address} <br /> ➔ {ride.destination_address}</div>
+                                    <div style={{ fontSize: 11, color: "gray", marginTop: 4 }}>
+                                        {ride.status === 'driver_arriving' ? 'Chauffeur en route' : 'En cours'}
+                                    </div>
                                 </div>
                             ))}
                         </div>

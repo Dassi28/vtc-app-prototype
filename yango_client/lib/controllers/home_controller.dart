@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -10,6 +11,8 @@ import '../core/utils.dart';
 
 class HomeController extends GetxController {
   final LocationService _locationService = Get.find<LocationService>();
+  final RideService _rideService = Get.find<RideService>();
+
 
   final MapController mapController = MapController();
   
@@ -21,7 +24,10 @@ class HomeController extends GetxController {
   final RxString destinationAddress = ''.obs;
   
   final RxList<Marker> markers = <Marker>[].obs;
+  final RxList<Marker> driverMarkers = <Marker>[].obs; // Driver markers
   final RxList<Polyline> polylines = <Polyline>[].obs;
+  StreamSubscription? _driverSubscription;
+
   
   final RxBool isLoading = false.obs;
   final Rx<VehicleType> selectedVehicleType = VehicleType.standard.obs;
@@ -32,6 +38,35 @@ class HomeController extends GetxController {
   void onInit() {
     super.onInit();
     _initCurrentLocation();
+    _subscribeToDrivers();
+  }
+
+  @override
+  void onClose() {
+    _driverSubscription?.cancel();
+    super.onClose();
+  }
+
+  void _subscribeToDrivers() {
+    _driverSubscription = _rideService.streamAvailableDrivers().listen((drivers) {
+      driverMarkers.value = drivers
+          .where((d) => d.currentLatitude != null && d.currentLongitude != null)
+          .map((driver) {
+        return Marker(
+          point: LatLng(driver.currentLatitude!, driver.currentLongitude!),
+          width: 30,
+          height: 30,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+            ),
+            child: const Icon(Icons.directions_car, color: Color(0xFF00B14F), size: 20),
+          ),
+        );
+      }).toList();
+    });
   }
 
   Future<void> _initCurrentLocation() async {

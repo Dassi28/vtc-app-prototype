@@ -23,7 +23,16 @@ class _SplashScreenState extends State<SplashScreen> {
     final authController = Get.find<AuthController>();
     
     if (authController.isAuthenticated) {
-      Get.offAllNamed('/home');
+      // Ensure profile is loaded
+      if (authController.userProfile == null) {
+        await authController.loadUserProfile();
+      }
+
+      if (authController.userProfile?.role == 'driver') {
+        Get.offAllNamed('/driver-home');
+      } else {
+        Get.offAllNamed('/home');
+      }
     } else {
       // Check if onboarding was shown
       // For simplicity, always show onboarding for now

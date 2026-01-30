@@ -17,6 +17,7 @@ class RideController extends GetxController {
   
   // ignore: cancel_subscriptions
   StreamSubscription? _rideSubscription;
+  StreamSubscription? _driverLocationSubscription;
 
   @override
   void onInit() {
@@ -27,6 +28,7 @@ class RideController extends GetxController {
   @override
   void onClose() {
     _rideSubscription?.cancel();
+    _driverLocationSubscription?.cancel();
     super.onClose();
   }
 
@@ -82,14 +84,36 @@ class RideController extends GetxController {
 
   void _startListeningToRide(String rideId) {
     _rideSubscription?.cancel();
+    _driverLocationSubscription?.cancel();
+
     _rideSubscription = _rideService.listenToRide(rideId).listen((ride) {
       if (ride != null) {
         currentRide.value = ride;
         
+        // Listen to driver location if assigned
+        if (ride.driverId != null && _driverLocationSubscription == null) {
+          _startListeningToDriver(ride.driverId!);
+        }
+        
         // If ride is completed or cancelled, stop listening
         if (ride.status == RideStatus.completed || ride.status == RideStatus.cancelled) {
           _rideSubscription?.cancel();
+          _driverLocationSubscription?.cancel();
         }
+      }
+    });
+  }
+
+  void _startListeningToDriver(String driverId) {
+    _driverLocationSubscription = _rideService.streamDriverLocation(driverId).listen((driver) {
+      if (driver != null && currentRide.value != null) {
+        // Create a new RideModel with updated driver info to trigger Obx
+        final updatedDriver = currentRide.value!.driver?.copyWith(
+          currentLatitude: driver.currentLatitude,
+          currentLongitude: driver.currentLongitude,
+        ) ?? driver;
+
+        currentRide.value = currentRide.value!.copyWith(driver: updatedDriver);
       }
     });
   }
